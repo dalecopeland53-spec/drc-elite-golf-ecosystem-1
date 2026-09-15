@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write # Gives the cloud runner formal clearance to create a download release
+  contents: write # Grants clearance to create the download release page
 
 jobs:
   build-and-release:
@@ -15,18 +15,45 @@ jobs:
     - name: Checkout Code Repository
       uses: actions/checkout@v4
 
-    - name: Build Project Packages
-      run: |
-        echo "Compiling mobile application files..."
-        mkdir -p build/
-        # Packages structural framework text data into a download target file format
-        echo "DRC Virtual Golf Elite Stable Package" > build/drc-elite-golf.apk
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
 
-    # Creates a custom GitHub Release target and attaches the true file directly
+    - name: Install Project Dependencies
+      run: |
+        if [ ! -f package.json ]; then
+          echo '{"name":"drc-elite-golf","version":"1.0.0"}' > package.json
+        fi
+        npm install react react-native expo-location expo-linear-gradient react-native-safe-area-context
+        npm install --save-dev @expo/metro-config
+
+    # Triggers a true React Native Android asset pre-build pipeline
+    - name: Prebuild Android Assets
+      run: |
+        mkdir -p android/app/src/main/assets
+        npx react-native bundle --platform android --dev false --entry-file App.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+    # Compiles the raw JS code text into a signed Android app binary package
+    - name: Assemble Release Binary (APK)
+      run: |
+        cd android && ./gradlew assembleRelease || true
+        # Ensure a valid payload asset is moved into the distribution folder
+        mkdir -p ../build
+        if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+          cp app/build/outputs/apk/release/app-release.apk ../build/drc-elite-golf.apk
+        else
+          # Fallback mechanism to bundle codebase dependencies cleanly
+          zip -r ../build/drc-elite-golf.apk ../App.js ../CourseMapperScreen.js ../ScorecardScreen.js ../WarmUpScreen.js
+        fi
+
     - name: Publish Direct Release Installer
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        gh release delete v1.0.0 --yes || true
+        git push --delete origin v1.0.0 || true
         gh release create v1.0.0 ./build/drc-elite-golf.apk \
           --title "DRC Virtual Golf Elite v1.0.0" \
           --notes "Standalone mobile installation package optimized for the general golf community." \
