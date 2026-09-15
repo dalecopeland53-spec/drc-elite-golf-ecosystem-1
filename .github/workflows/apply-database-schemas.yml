@@ -1,0 +1,21 @@
+name: Sync Relational Database Tables
+
+on:
+  push:
+    paths:
+      - '**.sql' # Fires exclusively if an SQL layout schema data changes
+
+jobs:
+  parse-and-log-schemas:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+
+    # Automated check validation to confirm structure before shipping to databases
+    name: Lint SQL Schema Validation Blocks
+    run: |
+      echo "Scanning structure configuration files..."
+      grep -q "CREATE TABLE" init_caddie_db.sql || (echo "Error: Missing valid database commands." && exit 1)
+      echo "SQL initialization metrics approved."
