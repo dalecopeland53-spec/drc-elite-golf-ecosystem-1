@@ -3,7 +3,7 @@ name: Automated S24 Ultra Native APK Compiler Pipeline
 on:
   push:
     branches:
-      - main  # Fires automatically every time you click "Commit changes"
+      - main
 
 jobs:
   compile-native-apk:
@@ -21,12 +21,11 @@ jobs:
       - name: 3. Set up Node.js Lifecycle
         uses: actions/setup-node@v4
         with:
-          node-size: 20
-          cache: 'npm'
+          node-version: 20
 
       - name: 4. Install production dependencies
         run: |
-          npm install --legacy-peer-deps
+          npm install --no-audit --no-fund --legacy-peer-deps
           npm install expo-location expo-linear-gradient react-native-safe-area-context
 
       - name: 5. Compile Native Android Source Build
