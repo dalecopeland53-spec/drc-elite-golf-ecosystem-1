@@ -1,155 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Voice from '@react-native-voice/voice';
-import Tts from 'react-native-tts';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const C = {
-  bgGradient: ['#142B4B', '#0A1626'],
-  metallicFrame: ['#E3E8F0', '#B0BCD2', '#E3E8F0'],
-  innerPanel: ['#F8FAFC', '#E2E8F0'],
-  navy: '#0A2540', blue: '#1D599A', darkBlue: '#0C356A', gold: '#D5AE52',
-  text: '#0F2038', muted: '#5C6E84', white: '#FFFFFF', green: '#27AE60', red: '#E12D2D'
-};
-
-const NAV = ['HOME', 'CADDIE', 'MAPPER', 'SCORECARD', 'MORE'];
-const PARS =;
-const STORAGE = 'CADDIEOS_WORLDCLASS_V1';
-
-export default function App() { return <SafeAreaProvider><Shell /></SafeAreaProvider>; }
-
-function Shell() {
-  const insets = useSafeAreaInsets();
-  const [entered, setEntered] = useState(false);
-  const [tab, setTab] = useState('HOME');
-  const [units, setUnits] = useState('METRES');
-  const [player, setPlayer] = useState('Player');
-  const [handicap, setHandicap] = useState('');
-  const [screenLocked, setScreenLocked] = useState(false);
-  
-  const [targets, setTargets] = useState(Array.from({ length: 18 }, () => ({ front: null, center: null, back: null })));
-  const [scores, setScores] = useState(Array(18).fill(''));
-  const [putts, setPutts] = useState(Array(18).fill(''));
-  const [gir, setGir] = useState(Array(18).fill(false));
-  const [fw, setFw] = useState(Array(18).fill(false));
-  const [heard, setHeard] = useState('Tap the mic to talk to your caddie.');
-  const [listening, setListening] = useState(false);
-
-  const saveState = async () => {
-    try {
-      const dataStr = JSON.stringify({ units, player, handicap, targets, scores, putts, gir, fw });
-      await AsyncStorage.setItem(STORAGE, dataStr);
-    } catch (e) { console.warn("Sync error:", e); }
-  };
-
-  useEffect(() => { if (entered) saveState(); }, [units, player, handicap, targets, scores, putts, gir, fw]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE);
-        if (raw) {
-          const x = JSON.parse(raw);
-          if (x.units) setUnits(x.units); if (x.player) setPlayer(x.player); if (x.handicap) setHandicap(x.handicap);
-        }
-      } catch {}
-    })();
-    Tts.setDefaultLanguage('en-AU').catch(() => {});
-    Voice.onSpeechStart = () => setListening(true);
-    Voice.onSpeechEnd = () => setListening(false);
-    Voice.onSpeechResults = (e) => { if (e.value) setHeard(e.value); };
-    Voice.onSpeechError = () => setListening(false);
-    return () => { Voice.destroy().then(Voice.removeAllListeners); };
-  }, []);
-
-  return (
-    <LinearGradient colors={C.bgGradient} style={styles.shellContainer}>
-      <StatusBar barStyle="light-content" />
-      <SafeAreaView style={[styles.mainArea, { paddingTop: insets.top }]}>
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandTitle}>DRC ELITE GOLF</Text>
-          <Text style={styles.brandSubtitle}>YOUR CADDIE. YOUR GAME.</Text>
-          {entered && (
-            <TouchableOpacity style={styles.lockHeaderBtn} onPress={() => setScreenLocked(true)}>
-              <Text style={styles.lockBtnText}>🔒 ACTIVE POCKET LOCK</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {!entered ? (
-          <ScrollView contentContainerStyle={styles.centerFlow}>
-            <LinearGradient colors={C.metallicFrame} style={styles.outerBorder}>
-              <LinearGradient colors={C.innerPanel} style={styles.innerContainer}>
-                <Text style={styles.loginHeader}>Welcome Player</Text>
-                <TextInput style={styles.inputField} placeholder="Golfer Name" placeholderTextColor={C.muted} value={player} onChangeText={setPlayer} />
-                <TextInput style={styles.inputField} placeholder="Handicap Index" placeholderTextColor={C.muted} keyboardType="numeric" value={handicap} onChangeText={setHandicap} />
-                <TouchableOpacity style={styles.primaryActionBtn} onPress={() => setEntered(true)}>
-                  <LinearGradient colors={[C.blue, C.darkBlue]} style={styles.btnGradient}>
-                    <Text style={styles.btnActionText}>LAUNCH APP DASHBOARD</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </LinearGradient>
-            </LinearGradient>
-          </ScrollView>
-        ) : (
-          <View style={styles.hydratedBody}>
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              {tab === 'HOME' && (
-                <LinearGradient colors={C.metallicFrame} style={styles.outerBorder}>
-                  <View style={styles.innerContainer}>
-                    <Text style={styles.loginHeader}>Welcome, {player}!</Text>
-                    <Text style={{ color: C.text, textAlign: 'center' }}>Handicap Index: {handicap}</Text>
-                  </View>
-                </LinearGradient>
-              )}
-              {tab === 'CADDIE' && (
-                <LinearGradient colors={C.metallicFrame} style={styles.outerBorder}>
-                  <View style={styles.innerContainer}>
-                    <Text style={styles.loginHeader}>🎙️ Caddie Listening</Text>
-                    <Text style={styles.heardTerminalText}>{heard}</Text>
-                  </View>
-                </LinearGradient>
-              )}
-            </ScrollView>
-            <View style={styles.tabbarFrame}>
-              {NAV.map((m) => (
-                <TouchableOpacity key={m} style={styles.tabBtn} onPress={() => setTab(m)}>
-                  <Text style={[styles.tabBtnText, tab === m ? styles.tabActiveText : styles.tabInactiveText]}>{m}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-        {screenLocked && (
-          <View style={StyleSheet.absoluteFill}>
-            <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setScreenLocked(false)}>
-              <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '900' }}>🔒 POCKET SAFE ACTIVE</Text>
-              <Text style={{ color: C.gold, marginTop: 10 }}>Tap Screen to Unlock</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </SafeAreaView>
-    </LinearGradient>
-  );
-}
-
-const styles = StyleSheet.create({
-  shellContainer: { flex: 1 }, mainArea: { flex: 1 },
-  brandContainer: { alignItems: 'center', marginVertical: 10, width: '100%' },
-  brandTitle: { fontSize: 22, fontWeight: '900', color: '#FFF', letterSpacing: 3 },
-  brandSubtitle: { fontSize: 10, fontWeight: '700', color: C.gold, letterSpacing: 1.5, marginTop: 2 },
-  lockHeaderBtn: { marginTop: 6, backgroundColor: '#0A2540', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#1E3A5F' },
-  lockBtnText: { color: C.gold, fontSize: 9, fontWeight: '800' },
-  centerFlow: { flexGrow: 1, justifyContent: 'center', padding: 20 }, hydratedBody: { flex: 1 },
-  outerBorder: { borderRadius: 18, padding: 2.5 }, innerContainer: { borderRadius: 16, padding: 18, backgroundColor: '#F8FAFC' },
-  loginHeader: { fontSize: 20, fontWeight: '800', color: C.navy, textAlign: 'center', marginBottom: 12 },
-  inputField: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 10, padding: 12, marginBottom: 14, color: '#000' },
-  primaryActionBtn: { borderRadius: 12, overflow: 'hidden' }, btnGradient: { paddingVertical: 14, alignItems: 'center' },
-  btnActionText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
-  heardTerminalText: { backgroundColor: '#FFF', padding: 16, borderRadius: 10, minHeight: 60, color: C.navy, textAlign: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
-  tabbarFrame: { flexDirection: 'row', backgroundColor: '#071E2D', borderTopWidth: 2, borderTopColor: '#1E3A5F', height: 60, alignItems: 'center', position: 'absolute', bottom: 0, left: 0, right: 0 },
-  tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabBtnText: { fontSize: 10, fontWeight: '800' }, tabActiveText: { color: C.gold }, tabInactiveText: { color: '#8A9EBC' }
-});
+import React,{useEffect,useState}from'react';
+import{Alert,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View}from'react-native';
+import{SafeAreaProvider,SafeAreaView}from'react-native-safe-area-context';
+import{LinearGradient}from'expo-linear-gradient';
+import Voice from'@react-native-voice/voice';
+import Tts from'react-native-tts';
+import AsyncStorage from'@react-native-async-storage/async-storage';
+import CourseMapperScreen from'./CourseMapperScreen';
+import ScorecardScreen from'./ScorecardScreen';
+import WarmUpScreen from'./WarmUpScreen';
+const C={navy:'#0A2540',blue:'#1D599A',dark:'#0A1626',gold:'#D5AE52',silver:'#E3E8F0',ice:'#F8FAFC',text:'#0F2038',muted:'#5C6E84',white:'#FFF'};
+const STORAGE='DRC_ELITE_GOLF_V1';
+const PARS=[4,4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4];
+const DEFAULT_BAG=[['Driver','230'],['3 Wood','210'],['5 Wood','195'],['4 Iron','180'],['5 Iron','170'],['6 Iron','160'],['7 Iron','150'],['8 Iron','140'],['9 Iron','130'],['PW','115'],['GW','100'],['SW','85'],['LW','70'],['Putter','0']];
+export default function App(){return <SafeAreaProvider><Shell/></SafeAreaProvider>}
+function Shell(){const[entered,setEntered]=useState(false),[tab,setTab]=useState('HOME'),[more,setMore]=useState(null),[player,setPlayer]=useState('Player'),[handicap,setHandicap]=useState(''),[units,setUnits]=useState('METRES'),[antiGlare,setAntiGlare]=useState(true),[bag,setBag]=useState(DEFAULT_BAG),[targets,setTargets]=useState(Array.from({length:18},()=>({front:null,center:null,back:null}))),[scores,setScores]=useState(Array(18).fill('')),[putts,setPutts]=useState(Array(18).fill('')),[gir,setGir]=useState(Array(18).fill(false)),[fw,setFw]=useState(Array(18).fill(false)),[heard,setHeard]=useState('Tap the microphone and ask your caddie.'),[listening,setListening]=useState(false),[partners,setPartners]=useState([{name:'',handicap:'',contact:''},{name:'',handicap:'',contact:''},{name:'',handicap:'',contact:''}]);
+useEffect(()=>{AsyncStorage.getItem(STORAGE).then(r=>{if(!r)return;let x=JSON.parse(r);if(x.player)setPlayer(x.player);if(x.handicap!=null)setHandicap(x.handicap);if(x.units)setUnits(x.units);if(x.antiGlare!=null)setAntiGlare(x.antiGlare);if(x.bag)setBag(x.bag);if(x.targets)setTargets(x.targets);if(x.scores)setScores(x.scores);if(x.putts)setPutts(x.putts);if(x.gir)setGir(x.gir);if(x.fw)setFw(x.fw);if(x.partners)setPartners(x.partners)}).catch(()=>{});Tts.setDefaultLanguage('en-AU').catch(()=>{});Voice.onSpeechStart=()=>setListening(true);Voice.onSpeechEnd=()=>setListening(false);Voice.onSpeechResults=e=>{let q=e.value?.[0]||'';setHeard(q);if(q){let a=advice(q,bag,units);setHeard(`${q}\n\nCaddie: ${a}`);Tts.speak(a)}};Voice.onSpeechError=()=>setListening(false);return()=>{Voice.destroy().then(Voice.removeAllListeners)}},[]);
+useEffect(()=>{AsyncStorage.setItem(STORAGE,JSON.stringify({player,handicap,units,antiGlare,bag,targets,scores,putts,gir,fw,partners})).catch(()=>{})},[player,handicap,units,antiGlare,bag,targets,scores,putts,gir,fw,partners]);
+const mic=async()=>{try{listening?await Voice.stop():await Voice.start('en-AU')}catch{Alert.alert('Microphone','Voice could not start. Check microphone permission.')}};
+const props={targets,setTargets,scores,setScores,putts,setPutts,gir,setGir,fw,setFw,player,partners};
+return <LinearGradient colors={antiGlare?['#E8EDF3','#CDD5DF']:['#142B4B','#0A1626']} style={s.root}><StatusBar barStyle={antiGlare?'dark-content':'light-content'}/><SafeAreaView style={s.safe}><View style={s.header}><View><Text style={[s.brand,antiGlare&&{color:C.navy}]}>DRC ELITE GOLF</Text><Text style={[s.tag,antiGlare&&{color:C.blue}]}>YOUR CADDIE · YOUR GAME</Text></View><TouchableOpacity style={s.glare} onPress={()=>setAntiGlare(v=>!v)}><Text style={s.glareText}>ANTI-GLARE {antiGlare?'ON':'OFF'}</Text></TouchableOpacity></View>{!entered?<Login {...{player,setPlayer,handicap,setHandicap,onEnter:()=>{setTab('HOME');setEntered(true)}}}/>:<View style={s.body}>{more?<ScrollView contentContainerStyle={s.scroll}><TouchableOpacity onPress={()=>setMore(null)}><Text style={s.back}>‹ BACK</Text></TouchableOpacity>{more==='BAG'?<Bag {...{bag,setBag,units}}/>:more==='WARMUP'?<WarmUpScreen/>:more==='SETTINGS'?<Settings {...{player,setPlayer,handicap,setHandicap,units,setUnits,partners,setPartners,signOut:()=>{setMore(null);setEntered(false)}}}/>:<Routine/>}</ScrollView>:tab==='MAPPER'?<CourseMapperScreen targets={targets} setTargets={setTargets}/>:tab==='SCORECARD'?<ScorecardScreen {...props}/>:<ScrollView contentContainerStyle={s.scroll}>{tab==='HOME'?<Home player={player} setTab={setTab} setMore={setMore}/>:tab==='CADDIE'?<Caddie {...{heard,listening,mic}}/>:<More setMore={setMore}/>}</ScrollView>}<Nav tab={tab} setTab={x=>{setMore(null);setTab(x)}}/></View>}</SafeAreaView></LinearGradient>}
+function Login({player,setPlayer,handicap,setHandicap,onEnter}){return <View style={s.login}><Card><Text style={s.h1}>Welcome</Text><TextInput style={s.input} value={player} onChangeText={setPlayer} placeholder="Golfer name"/><TextInput style={s.input} value={handicap} onChangeText={setHandicap} placeholder="Handicap" keyboardType="numeric"/><Btn text="ENTER DRC ELITE GOLF" onPress={onEnter}/><Text style={s.note}>No email required · Golf data stays on your device</Text></Card></View>}
+function Home({player,setTab,setMore}){return <><Text style={s.kicker}>HOME</Text><Text style={s.h1}>Welcome, {player}</Text><Btn text="START / CONTINUE ROUND" onPress={()=>setTab('CADDIE')}/><View style={s.grid}><Tile t="CADDIE" onPress={()=>setTab('CADDIE')}/><Tile t="COURSE MAPPER" onPress={()=>setTab('MAPPER')}/><Tile t="MY BAG" onPress={()=>setMore('BAG')}/><Tile t="SCORECARD" onPress={()=>setTab('SCORECARD')}/><Tile t="WARM-UP" onPress={()=>setMore('WARMUP')}/><Tile t="MY PRE SHOT ROUTINE" onPress={()=>setMore('ROUTINE')}/></View></>}
+function Caddie({heard,listening,mic}){return <><Text style={s.kicker}>CADDIE</Text><Text style={s.h1}>Ask your caddie</Text><Card><Text style={s.response}>{heard}</Text><TouchableOpacity style={s.mic} onPress={mic}><Text style={s.micText}>{listening?'■':'🎙'}</Text></TouchableOpacity><Text style={s.note}>{listening?'Listening…':'Tap to speak'}</Text></Card></>}
+function Bag({bag,setBag,units}){const[name,setName]=useState(''),[dist,setDist]=useState('');const add=()=>{if(!name.trim())return;if(bag.length>=14)return Alert.alert('My Bag','Maximum 14 clubs.');setBag([...bag,[name.trim(),dist||'0']]);setName('');setDist('')};return <><Text style={s.h1}>My Bag · {bag.length}/14</Text><View style={s.row}><TextInput style={[s.input,{flex:1}]} value={name} onChangeText={setName} placeholder="Club name"/><TextInput style={[s.input,{width:70}]} value={dist} onChangeText={setDist} placeholder={units==='METRES'?'m':'yd'} keyboardType="numeric"/><Btn text="+" onPress={add} small/></View>{bag.map((x,i)=><View style={s.club} key={i}><TextInput style={[s.clubName]} value={x[0]} onChangeText={v=>setBag(bag.map((a,j)=>j===i?[v,a[1]]:a))}/><TextInput style={s.clubDist} value={String(x[1])} keyboardType="numeric" onChangeText={v=>setBag(bag.map((a,j)=>j===i?[a[0],v]:a))}/><Text style={s.unit}>{units==='METRES'?'m':'yd'}</Text><TouchableOpacity onPress={()=>setBag(bag.filter((_,j)=>j!==i))}><Text style={s.x}>×</Text></TouchableOpacity></View>)}</>}
+function Settings({player,setPlayer,handicap,setHandicap,units,setUnits,partners,setPartners,signOut}){const edit=(i,k,v)=>setPartners(partners.map((p,j)=>j===i?{...p,[k]:v}:p));return <><Text style={s.h1}>Player Settings</Text><TextInput style={s.input} value={player} onChangeText={setPlayer} placeholder="Player name"/><TextInput style={s.input} value={handicap} onChangeText={setHandicap} placeholder="Handicap" keyboardType="numeric"/><View style={s.row}><Btn text="METRES" onPress={()=>setUnits('METRES')} small/><Btn text="IMPERIAL" onPress={()=>setUnits('IMPERIAL')} small/></View><Text style={s.h2}>Saved Players</Text>{partners.map((p,i)=><Card key={i}><TextInput style={s.input} value={p.name} onChangeText={v=>edit(i,'name',v)} placeholder={`Player ${i+2} name`}/><View style={s.row}><TextInput style={[s.input,{flex:1}]} value={p.handicap} onChangeText={v=>edit(i,'handicap',v)} placeholder="HCP" keyboardType="numeric"/><TextInput style={[s.input,{flex:2}]} value={p.contact} onChangeText={v=>edit(i,'contact',v)} placeholder="Contact number" keyboardType="phone-pad"/></View></Card>)}<Btn text="SIGN OUT" onPress={signOut}/></>}
+function More({setMore}){return <><Text style={s.kicker}>MORE</Text><Text style={s.h1}>Golf Tools</Text>{[['MY BAG','BAG'],['WARM-UP','WARMUP'],['MY PRE SHOT ROUTINE','ROUTINE'],['SETTINGS','SETTINGS']].map(x=><TouchableOpacity style={s.moreRow} key={x[1]} onPress={()=>setMore(x[1])}><Text style={s.moreText}>{x[0]}</Text><Text style={s.moreText}>›</Text></TouchableOpacity>)}</>}
+function Routine(){return <><Text style={s.h1}>My Pre Shot Routine</Text>{['Target','Lie','Club','Picture','Commit','Breathe','Swing','Next shot'].map((x,i)=><Card key={x}><Text style={s.routine}>{i+1}. {x}</Text></Card>)}</>}
+function Nav({tab,setTab}){return <View style={s.nav}>{[['HOME','HOME'],['CADDIE','CADDIE'],['MAPPER','COURSE'],['SCORECARD','SCORE'],['MORE','MORE']].map(x=><TouchableOpacity style={s.navBtn} key={x[0]} onPress={()=>setTab(x[0])}><Text style={[s.navText,tab===x[0]&&s.navOn]}>{x[1]}</Text></TouchableOpacity>)}</View>}
+function Card({children}){return <View style={s.card}>{children}</View>}function Btn({text,onPress,small}){return <TouchableOpacity style={[s.btn,small&&s.btnSmall]} onPress={onPress}><Text style={s.btnText}>{text}</Text></TouchableOpacity>}function Tile({t,onPress}){return <TouchableOpacity style={s.tile} onPress={onPress}><Text style={s.tileText}>{t}</Text></TouchableOpacity>}
+function advice(q,bag,units){let m=q.match(/(\d{2,3})\s*(metres|meters|m|yards|yds|yard)?/i);if(!m)return'Give me the distance, lie and wind and I’ll make the call.';let d=Number(m[1]);if(/yard|yd/i.test(m[2]||''))d/=1.09361;let wind=q.match(/(\d{1,2})\s*(km|kph|mph)/i);if(wind){let mph=/mph/i.test(wind[2])?Number(wind[1]):Number(wind[1])*.621371;if(/head|into/i.test(q))d+=mph*.75*.9144;if(/tail|behind/i.test(q))d-=mph*.75*.9144}if(/rough/i.test(q))d*=1.04;if(/deep rough/i.test(q))d*=1.07;if(/uphill|up hill/i.test(q))d*=1.05;if(/downhill|down hill/i.test(q))d*=.95;let clubs=bag.filter(x=>Number(x[1])>0).map(x=>[x[0],units==='METRES'?Number(x[1]):Number(x[1])/1.09361]);let c=clubs.sort((a,b)=>Math.abs(a[1]-d)-Math.abs(b[1]-d))[0];return`${Math.round(d)} metres playing distance. ${c?c[0]:'Choose the club that covers it'}. Commit to the target.`}
+const s=StyleSheet.create({root:{flex:1},safe:{flex:1},header:{height:62,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},brand:{fontSize:19,fontWeight:'900',letterSpacing:1.5,color:C.white},tag:{fontSize:8,fontWeight:'900',letterSpacing:1.1,color:C.gold},glare:{paddingHorizontal:8,paddingVertical:7,borderRadius:14,borderWidth:1,borderColor:C.blue,backgroundColor:'#F8FAFC'},glareText:{fontSize:8,fontWeight:'900',color:C.navy},body:{flex:1},scroll:{padding:10,paddingBottom:76},login:{flex:1,justifyContent:'center',padding:16},card:{padding:10,borderRadius:10,borderWidth:1,borderColor:'#B9C5D3',backgroundColor:C.ice,marginBottom:8},kicker:{fontSize:10,fontWeight:'900',letterSpacing:1.2,color:C.blue},h1:{fontSize:23,fontWeight:'900',color:C.navy,marginBottom:9},h2:{fontSize:16,fontWeight:'900',color:C.navy,marginVertical:8},input:{height:42,borderWidth:1,borderColor:'#C3CDD8',borderRadius:8,paddingHorizontal:9,backgroundColor:C.white,color:C.text,marginBottom:6},btn:{minHeight:43,borderRadius:8,backgroundColor:C.blue,alignItems:'center',justifyContent:'center',paddingHorizontal:10,marginBottom:7},btnSmall:{flex:1,minHeight:40},btnText:{fontSize:11,fontWeight:'900',color:C.white},note:{fontSize:10,fontWeight:'700',color:C.muted,textAlign:'center'},grid:{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-between'},tile:{width:'48.5%',height:70,borderRadius:9,backgroundColor:C.ice,borderWidth:1,borderColor:'#B9C5D3',alignItems:'center',justifyContent:'center',marginBottom:8,padding:6},tileText:{fontSize:11,fontWeight:'900',color:C.navy,textAlign:'center'},response:{fontSize:14,fontWeight:'700',color:C.text,lineHeight:20,textAlign:'center',minHeight:70},mic:{width:62,height:62,borderRadius:31,backgroundColor:C.blue,alignSelf:'center',alignItems:'center',justifyContent:'center',marginVertical:8},micText:{fontSize:28,color:C.white},row:{flexDirection:'row',gap:6,alignItems:'center'},club:{height:46,flexDirection:'row',alignItems:'center',gap:5,paddingHorizontal:8,borderRadius:8,backgroundColor:C.ice,borderWidth:1,borderColor:'#B9C5D3',marginBottom:4},clubName:{flex:1,fontSize:14,fontWeight:'800',color:C.navy},clubDist:{width:62,height:34,textAlign:'center',borderWidth:1,borderColor:'#C3CDD8',borderRadius:6,backgroundColor:C.white,color:C.navy,fontWeight:'900'},unit:{width:20,fontSize:9,color:C.muted},x:{fontSize:22,fontWeight:'900',color:C.navy,paddingHorizontal:5},moreRow:{height:48,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderRadius:8,backgroundColor:C.ice,borderWidth:1,borderColor:'#B9C5D3',marginBottom:6},moreText:{fontSize:12,fontWeight:'900',color:C.navy},routine:{fontSize:14,fontWeight:'900',color:C.navy},back:{fontSize:11,fontWeight:'900',color:C.blue,marginBottom:8},nav:{position:'absolute',bottom:0,left:0,right:0,height:58,flexDirection:'row',backgroundColor:'#071E2D',borderTopWidth:1,borderTopColor:'#31506F'},navBtn:{flex:1,alignItems:'center',justifyContent:'center'},navText:{fontSize:9,fontWeight:'900',color:'#8A9EBC'},navOn:{color:C.gold}});
