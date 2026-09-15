@@ -14,12 +14,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Install dependencies
         run: npm install
+      - name: Replace legacy TTS source binding
+        run: |
+          python3 - <<'PY'
+          p='App.js'
+          s=open(p).read()
+          s=s.replace("import Tts from'react-native-tts';", "import * as Speech from'expo-speech';")
+          s=s.replace("Tts.setDefaultLanguage('en-AU').catch(()=>{});", "")
+          s=s.replace("Tts.speak(a)", "Speech.speak(a,{language:'en-AU'})")
+          open(p,'w').write(s)
+          PY
+          ! grep -q "react-native-tts" App.js
       - name: Validate source
         run: |
           test -f App.js
@@ -28,7 +39,9 @@ jobs:
           test -f WarmUpScreen.js
           ! grep -R "const PARS =;" --include='*.js' .
       - name: Generate Android project
-        run: npx expo prebuild --platform android --non-interactive
+        env:
+          CI: '1'
+        run: npx expo prebuild --platform android
       - name: Build real release APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
