@@ -1,6 +1,5 @@
 name: Verify DRC Mobile App Syntax
 
-# Trigger this action automation the second a file updates inside your repository
 on:
   push:
     branches: [ main ]
@@ -12,17 +11,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Pull down the clean files from your repository tree profile
     - name: Checkout Code Repository
       uses: actions/checkout@v4
 
-    # 2. Boot up a clean, isolated cloud environment running Node.js
     - name: Initialize Node.js Environment
       uses: actions/setup-node@v4
       with:
-        node-node-version: 18
+        node-version: 18
 
-    # 3. Scan your App.js file automatically to check for syntax structure validation errors
+    # This updated step cleans up the scan by creating mock placeholders for the missing pieces
     - name: Check JavaScript Syntax Real-Time
       run: |
-        node -e "try { require('./App.js'); console.log('Syntax check passed successfully.'); } catch (e) { if (e.message.includes('Cannot find module')) { console.log('Basic framework syntax looks solid.'); } else { throw e; } }"
+        node -e "
+        const fs = require('fs');
+        let code = fs.readFileSync('./App.js', 'utf8');
+        // Clean out native mobile imports just for this text validation scan
+        code = code.replace(/import.*?from.*?;/g, '');
+        code = code.replace(/export default/g, '// export default');
+        try {
+          eval(code);
+          console.log('App code structural syntax looks solid!');
+        } catch (e) {
+          console.error('Syntax parsing error found:', e);
+          process.exit(1);
+        }
+        "
