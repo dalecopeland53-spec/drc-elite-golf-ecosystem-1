@@ -1,6 +1,6 @@
 {
   "name":"drc-elite-golf-ecosystem",
-  "version":"1.0.1",
+  "version":"1.0.2",
   "private":true,
   "main":"node_modules/expo/AppEntry.js",
   "scripts":{"start":"expo start","android":"expo start --android","test":"node --check App.js"},
@@ -8,11 +8,11 @@
     "expo":"~55.0.0",
     "expo-linear-gradient":"~15.0.7",
     "expo-location":"~19.0.7",
+    "expo-speech":"~55.0.8",
     "react":"19.2.0",
     "react-native":"0.83.2",
     "react-native-safe-area-context":"~5.6.2",
     "@react-native-async-storage/async-storage":"2.2.0",
-    "@react-native-voice/voice":"3.2.4",
-    "react-native-tts":"4.1.1"
+    "@react-native-voice/voice":"3.2.4"
   }
 }
