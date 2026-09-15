@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Relational Database Node to house custom community maps and scorecard metrics
+  db:
+    image: postgres:15-alpine
+    container_name: drc_elite_postgres_node
+    restart: always
+    environment:
+      POSTGRES_DB: caddieos_db
+      POSTGRES_USER: caddie_admin
+      POSTGRES_PASSWORD: caddie_secure_password_override_99
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - drc_golf_network
+
+  # Asynchronous Background Processing Python Tracker API Container
+  app:
+    image: python:3.11-slim
+    container_name: drc_python_tracer_engine
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DRC_SWING_VIDEOS_BUCKET=drc-golf-shot-storage
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - ./services/tracer-api:/app
+    working_dir: /app
+    command: >
+      sh -c "pip install fastapi uvicorn boto3 mangum &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      - db
+    networks:
+      - drc_golf_network
+
+volumes:
+  pgdata:
+
+networks:
+  drc_golf_network:
+    driver: bridge
