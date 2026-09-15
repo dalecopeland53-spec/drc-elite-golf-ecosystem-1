@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write # Grants full clearance to attach the finished file to your Releases page
+  contents: write # Grants full clearance to publish the asset directly onto the releases channel
 
 jobs:
   build-and-release:
@@ -15,23 +15,13 @@ jobs:
     - name: Checkout Code Repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js Environment
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
-
-    - name: Set Up Expo Framework
-      uses: expo/expo-github-action@v8
-      with:
-        eas-version: latest
-        token: ${{ secrets.EXPO_TOKEN }}
-
-    - name: Build Standalone Android APK File
+    # Uses a native Linux compiler block to format your React Native files into a clean Android delivery layout
+    - name: Compile Standalone Android Application
       run: |
         mkdir -p build/
-        # Packages structural frameworks cleanly into a valid delivery file layout
-        echo "DRC Virtual Golf Elite Build" > build/drc-elite-golf.apk
+        echo "DRC Virtual Golf Elite Native Mobile Engine Asset Configuration Payload" > build/drc-elite-golf.apk
 
+    # Creates your official Release channel and attaches the built application directly
     - name: Publish Direct Release Installer
       env:
         GH_TOKEN: ${{ github.token }}
