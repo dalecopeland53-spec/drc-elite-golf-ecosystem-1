@@ -1,0 +1,11 @@
+{
+  "name": "drc-elite-golf-ecosystem",
+  "version": "1.0.0",
+  "description": "Simple golf scoring and improvement app",
+  "main": "App.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
