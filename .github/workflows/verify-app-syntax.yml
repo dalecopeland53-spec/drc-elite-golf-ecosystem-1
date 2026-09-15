@@ -1,34 +1,43 @@
-name: Compile Standalone Release App
-
+name: DRC Elite Golf Android Build
 on:
   push:
-    branches: [ main ]
-
+    branches: [main]
+  workflow_dispatch:
 permissions:
-  contents: write # Grants full clearance to publish the asset directly onto the releases channel
-
+  contents: read
 jobs:
-  build-and-release:
+  android:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 35
     steps:
-    - name: Checkout Code Repository
-      uses: actions/checkout@v4
-
-    # Uses a native Linux compiler block to format your React Native files into a clean Android delivery layout
-    - name: Compile Standalone Android Application
-      run: |
-        mkdir -p build/
-        echo "DRC Virtual Golf Elite Native Mobile Engine Asset Configuration Payload" > build/drc-elite-golf.apk
-
-    # Creates your official Release channel and attaches the built application directly
-    - name: Publish Direct Release Installer
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh release delete v1.0.0 --yes || true
-        git push --delete origin v1.0.0 || true
-        gh release create v1.0.0 ./build/drc-elite-golf.apk \
-          --title "DRC Virtual Golf Elite v1.0.0" \
-          --notes "Standalone mobile installation package optimized for the general golf community." \
-          --target main
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install dependencies
+        run: npm install
+      - name: Validate source
+        run: |
+          test -f App.js
+          test -f CourseMapperScreen.js
+          test -f ScorecardScreen.js
+          test -f WarmUpScreen.js
+          ! grep -R "const PARS =;" --include='*.js' .
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --non-interactive
+      - name: Build real release APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Collect APK
+        run: mkdir -p output && cp android/app/build/outputs/apk/release/app-release.apk output/DRC-Elite-Golf-Build-1.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DRC-Elite-Golf-Build-1
+          path: output/DRC-Elite-Golf-Build-1.apk
+          if-no-files-found: error
+          retention-days: 14
