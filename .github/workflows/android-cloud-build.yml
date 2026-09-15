@@ -1,0 +1,43 @@
+name: Automated S24 Ultra Native APK Compiler Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Fires automatically every time you click "Commit changes"
+
+jobs:
+  compile-native-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Pull down repository source code
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Java Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 3. Set up Node.js Lifecycle
+        uses: actions/setup-node@v4
+        with:
+          node-size: 20
+          cache: 'npm'
+
+      - name: 4. Install production dependencies
+        run: |
+          npm install --legacy-peer-deps
+          npm install expo-location expo-linear-gradient react-native-safe-area-context
+
+      - name: 5. Compile Native Android Source Build
+        run: |
+          npx expo prebuild --platform android --clean
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 6. Upload Finished App Link Direct to Your Phone
+        uses: actions/upload-artifact@v4
+        with:
+          name: drc-elite-golf-s24-ultra
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
