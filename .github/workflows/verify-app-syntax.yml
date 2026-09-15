@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write # Grants clearance to create the download release page
+  contents: write # Grants clearance to push the heavy asset payload onto the releases channel
 
 jobs:
   build-and-release:
@@ -19,21 +19,29 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 18
-        cache: 'npm'
 
     - name: Install Project Dependencies
       run: |
-        if [ ! -f package.json ]; then
-          echo '{"name":"drc-elite-golf","version":"1.0.0"}' > package.json
-        fi
-        npm install react react-native expo-location expo-linear-gradient react-native-safe-area-context
-        npm install --save-dev @expo/metro-config
+        npm install
+        npm install -g expo-cli
 
-    # Triggers a true React Native Android asset pre-build pipeline
-    - name: Prebuild Android Assets
+    # Utilizes an official marketplace cloud packaging wrapper to compile everything with zero local tools
+    - name: Compile Standalone Android APK
+      uses: AndreaMolinari/RNAndroidBuild@v1.0.0
+      with:
+        package-name: com.dalecopeland.drcelitegolf
+
+    # Takes the finalized heavy bundle from the system output and attaches it directly to your Releases channel
+    - name: Publish Direct Release Installer
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        mkdir -p android/app/src/main/assets
-        npx react-native bundle --platform android --dev false --entry-file App.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+        gh release delete v1.0.0 --yes || true
+        git push --delete origin v1.0.0 || true
+        gh release create v1.0.0 ./android/app/build/outputs/apk/release/app-release.apk \
+          --title "DRC Virtual Golf Elite v1.0.0" \
+          --notes "Standalone mobile installation package optimized for the general golf community." \
+          --target main
 
     # Compiles the raw JS code text into a signed Android app binary package
     - name: Assemble Release Binary (APK)
