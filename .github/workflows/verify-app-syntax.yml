@@ -1,71 +1,42 @@
-version: '3.8'
+name: Automated S24 Ultra Native APK Compiler Pipeline
 
-services:
-  # Relational Database Node for storing custom pinned course maps, bags, and history logs
-  db:
-    image: postgres:15-alpine
-    container_name: drc_elite_postgres_db
-    restart: always
-    environment:
-      POSTGRES_DB: caddieos_db
-      POSTGRES_USER: caddie_admin
-      POSTGRES_PASSWORD: caddie_secure_password_2026
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_golf_data:/var/lib/postgresql/data
-      - ./services/database/init_caddie_db.sql:/docker-entrypoint-initdb.d/init_caddie_db.sql
-    networks:
-      - drc_golf_network
+on:
+  push:
+    branches:
+      - main
 
-  # FastAPI Web Server Engine running your asynchronous drc_golf_shot_tracer.py script
-  app:
-    build:
-      context: .
-      dockerfile: ./services/tracer-api/Dockerfile
-    container_name: drc_caddieos_api_server
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://caddie_admin:caddie_secure_password_2026@db:5432/caddieos_db
-      - DRC_SWING_VIDEOS_BUCKET=drc-golf-shot-storage
-    depends_on:
-      - db
-    networks:
-      - drc_golf_network
+jobs:
+  compile-native-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Pull down repository source code
+        uses: actions/checkout@v4
 
-volumes:
-  postgres_golf_data:
-    driver: local
-
-networks:
-  drc_golf_network:
-    driver: bridge
-          hooks="useSpeechRecognitionEvent('result',e=>{let q=e.results?.[0]?.transcript||'';if(q){let a=advice(q,bag,units);setHeard(`${q}\\n\\nCaddie: ${a}`);Speech.speak(a,{language:'en-AU'})}});useSpeechRecognitionEvent('end',()=>setListening(false));useSpeechRecognitionEvent('error',()=>setListening(false));\n"
-          s=s.replace(marker,hooks+marker)
-          open(p,'w').write(s)
-          PY
-          ! grep -q "@react-native-voice/voice\|react-native-tts" App.js
-      - name: Validate source
-        run: |
-          test -f App.js
-          test -f CourseMapperScreen.js
-          test -f ScorecardScreen.js
-          test -f WarmUpScreen.js
-          ! grep -R "const PARS =;" --include='*.js' .
-      - name: Generate Android project
-        env:
-          CI: '1'
-        run: npx expo prebuild --platform android
-      - name: Build real release APK
-        working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
-      - name: Collect APK
-        run: mkdir -p output && cp android/app/build/outputs/apk/release/app-release.apk output/DRC-Elite-Golf-Build-1.apk
-      - uses: actions/upload-artifact@v4
+      - name: 2. Set up Java Environment
+        uses: actions/setup-java@v4
         with:
-          name: DRC-Elite-Golf-Build-1
-          path: output/DRC-Elite-Golf-Build-1.apk
-          if-no-files-found: error
-          retention-days: 14
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 3. Set up Node.js Lifecycle
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 4. Install production dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm install expo-location expo-linear-gradient react-native-safe-area-context
+
+      - name: 5. Compile Native Android Source Build
+        run: |
+          npx expo prebuild --platform android --clean
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 6. Upload Finished App Link Direct to Your Phone
+        uses: actions/upload-artifact@v4
+        with:
+          name: drc-elite-golf-s24-ultra
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
