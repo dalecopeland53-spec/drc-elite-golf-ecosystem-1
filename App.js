@@ -17,7 +17,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 // ==============================================================================
 // 1. DATA DICTIONARIES & MEMORY REGISTERS (Deep Midnight Luxury Theme)
 // ==============================================================================
-const PARS =;
+const PARS = [4,4,3,5,4,4,3,5,4,4,3,5,4,4,3,5,4,4];
 const LIES = ['Tee', 'Fairway', 'Light Rough', 'Rough', 'Deep Rough', 'Bunker'];
 
 const CLUB_LIBRARY = [
@@ -72,9 +72,6 @@ const executeCaddieRecommendation = (calculatedPlaysLikeDistance, unitType) => {
   }, CLUB_LIBRARY).name;
 };
 
-// ==============================================================================
-// 2. CORE APPS LOGIC PANEL (Pure CSS High-Performance Panels)
-// ==============================================================================
 export default function App() {
   const [activeTab, setActiveTab] = useState('HOME');
   const [units, setUnits] = useState('YARDS');
@@ -82,39 +79,27 @@ export default function App() {
   const [handicap] = useState('12.4');
   const [activeHoleIdx, setActiveHoleIdx] = useState(0);
   const [isPocketLockActive, setIsPocketLockActive] = useState(false);
-
   const [courseMapPositions, setCourseMapPositions] = useState(Array.from({ length: 18 }, () => ({ front: null, center: null, back: null })));
   const [scorecardStrokes, setScorecardStrokes] = useState(Array(18).fill(''));
   const [scorecardPutts, setScorecardPutts] = useState(Array(18).fill(''));
   const [scorecardFairways, setScorecardFairways] = useState(Array(18).fill(false));
   const [scorecardGIR, setScorecardGIR] = useState(Array(18).fill(false));
-  
   const [targetInputDistance, setTargetInputDistance] = useState('155');
   const [windVelocity, setWindVelocity] = useState('12');
   const [windBearing, setWindBearing] = useState('HEAD');
   const [slopeElevation, setSlopeElevation] = useState('2');
   const [currentBallLie, setCurrentBallLie] = useState('Fairway');
-
   const [completedWarmupPhases, setCompletedWarmupPhases] = useState([]);
   const [activeMentalRoutineIdx, setActiveMentalRoutineIdx] = useState(0);
 
-  const resolvedPlaysLikeDistance = useMemo(() => {
-    return executePlaysLikeEngine(targetInputDistance, windVelocity, slopeElevation, currentBallLie, windBearing, units);
-  }, [targetInputDistance, windVelocity, slopeElevation, currentBallLie, windBearing, units]);
-
-  const recommendedClubSelection = useMemo(() => {
-    return executeCaddieRecommendation(resolvedPlaysLikeDistance, units);
-  }, [resolvedPlaysLikeDistance, units]);
-
+  const resolvedPlaysLikeDistance = useMemo(() => executePlaysLikeEngine(targetInputDistance, windVelocity, slopeElevation, currentBallLie, windBearing, units), [targetInputDistance, windVelocity, slopeElevation, currentBallLie, windBearing, units]);
+  const recommendedClubSelection = useMemo(() => executeCaddieRecommendation(resolvedPlaysLikeDistance, units), [resolvedPlaysLikeDistance, units]);
   const calculatedMacroStrokesTotal = useMemo(() => scorecardStrokes.reduce((acc, curr) => acc + (Number(curr) || 0), 0), [scorecardStrokes]);
   const calculatedMacroPuttsTotal = useMemo(() => scorecardPutts.reduce((acc, curr) => acc + (Number(curr) || 0), 0), [scorecardPutts]);
 
   const executeGPSCaptureSequence = (pointMarkerType) => {
     const updatedCoordinatesMap = [...courseMapPositions];
-    updatedCoordinatesMap[activeHoleIdx] = {
-      ...updatedCoordinatesMap[activeHoleIdx],
-      [pointMarkerType]: { lat: -23.1333 + (Math.random() - 0.5) * 0.001, lon: 150.7333 + (Math.random() - 0.5) * 0.001 }
-    };
+    updatedCoordinatesMap[activeHoleIdx] = { ...updatedCoordinatesMap[activeHoleIdx], [pointMarkerType]: { lat: -23.1333 + (Math.random() - 0.5) * 0.001, lon: 150.7333 + (Math.random() - 0.5) * 0.001 } };
     setCourseMapPositions(updatedCoordinatesMap);
     if (Platform.OS === 'android') Vibration.vibrate(40);
     Alert.alert('GPS Status', `${pointMarkerType.toUpperCase()} node coordinate saved perfectly.`);
@@ -133,42 +118,33 @@ export default function App() {
     modifierFunc(fresh);
   };
 
+  const tabs = ['HOME', 'CADDIE', 'SCORE', 'COURSE', 'MORE'];
   return (
     <SafeAreaProvider>
       <View style={styles.appShellViewport}>
         <StatusBar barStyle="light-content" />
         <SafeAreaView style={styles.safeLayoutEngine}>
-          
           <View style={styles.macroHeaderBrandContainer}>
             <Text style={styles.macroHeaderBrandTitle}>DRC ELITE GOLF</Text>
             <Text style={styles.macroHeaderBrandSubtitle}>YOUR CADDIE. YOUR GAME.</Text>
-            <TouchableOpacity style={styles.headerPocketLockTrigger} onPress={() => setIsPocketLockActive(true)}>
-              <Text style={styles.headerPocketLockTriggerText}>🔒 ENGAGE POCKET TOUCH SHIELD</Text>
-            </TouchableOpacity>
           </View>
+          <ScrollView contentContainerStyle={styles.mainLayoutScrollArea}>
+            <View style={styles.metallicInnerPanel}>
+              <Text style={styles.componentHeaderLabel}>{activeTab}</Text>
+              {activeTab === 'HOME' && <Text style={styles.bodyText}>Golfer: {golferName}   Index: {handicap}   Units: {units}</Text>}
+              {activeTab === 'CADDIE' && <><Text style={styles.caddieMatrixValue}>{resolvedPlaysLikeDistance} {units}</Text><Text style={styles.bodyText}>Recommended club: {recommendedClubSelection}</Text><TextInput style={styles.formInputField} keyboardType="numeric" value={targetInputDistance} onChangeText={setTargetInputDistance} /></>}
+              {activeTab === 'SCORE' && <><Text style={styles.bodyText}>Hole {activeHoleIdx + 1} • Par {PARS[activeHoleIdx]}</Text><Text style={styles.caddieMatrixValue}>{scorecardStrokes[activeHoleIdx] || '-'}</Text><View style={styles.row}><TouchableOpacity style={styles.button} onPress={() => executeScoreIncrement(scorecardStrokes,setScorecardStrokes,-1)}><Text>-</Text></TouchableOpacity><TouchableOpacity style={styles.button} onPress={() => executeScoreIncrement(scorecardStrokes,setScorecardStrokes,1)}><Text>+</Text></TouchableOpacity></View><Text style={styles.bodyText}>Total {calculatedMacroStrokesTotal} • Putts {calculatedMacroPuttsTotal}</Text></>}
+              {activeTab === 'COURSE' && <><Text style={styles.bodyText}>Hole {activeHoleIdx + 1} mapping</Text><TouchableOpacity style={styles.actionButton} onPress={() => executeGPSCaptureSequence('center')}><Text style={styles.actionText}>MARK GREEN CENTRE</Text></TouchableOpacity></>}
+              {activeTab === 'MORE' && <><Text style={styles.bodyText}>Pocket shield: {isPocketLockActive ? 'ON' : 'OFF'}</Text><Switch value={isPocketLockActive} onValueChange={setIsPocketLockActive}/><TouchableOpacity style={styles.actionButton} onPress={() => setUnits(units === 'YARDS' ? 'METRES' : 'YARDS')}><Text style={styles.actionText}>USE {units === 'YARDS' ? 'METRES' : 'YARDS'}</Text></TouchableOpacity></>}
+            </View>
+          </ScrollView>
+          <View style={styles.nav}>{tabs.map(tab => <TouchableOpacity key={tab} style={styles.navButton} onPress={() => setActiveTab(tab)}><Text style={[styles.navText,activeTab===tab&&styles.navTextActive]}>{tab}</Text></TouchableOpacity>)}</View>
+        </SafeAreaView>
+      </View>
+    </SafeAreaProvider>
+  );
+}
 
-          <View style={{ flex: 1, marginBottom: 65 }}>
-            <ScrollView contentContainerStyle={styles.mainLayoutScrollArea} showsVerticalScrollIndicator={false}>
-              
-              {activeTab === 'HOME' && (
-                <View>
-                  <View style={styles.metallicInnerPanel}>
-                    <Text style={styles.componentHeaderLabel}>🏌️‍♂️ Profile Telemetry</Text>
-                    <Text style={styles.profileStatText}><Text style={{ fontWeight: '800' }}>Golfer:</Text> {golferName}  |  <Text style={{ fontWeight: '800' }}>Index:</Text> {handicap}  |  <Text style={{ fontWeight: '800' }}>Units:</Text> {units}</Text>
-                  </View>
-
-                  <View style={[styles.metallicInnerPanel, { marginTop: 14 }]}>
-                    <Text style={styles.componentHeaderLabel}>🤖 AI Caddie Active Advice</Text>
-                    <View style={styles.caddieDataMatrixRow}>
-                      <View style={styles.caddieDataMatrixItem}><Text style={styles.caddieMatrixValue}>{resolvedPlaysLikeDistance}</Text><Text style={styles.caddieMatrixLabel}>WAYS-LIKE ({units})</Text></View>
-                      <View style={styles.caddieDataMatrixItem}><Text style={[styles.caddieMatrixValue, { color: '#1D599A' }]}>{recommendedClubSelection}</Text><Text style={styles.caddieMatrixLabel}>CLUB SUGGESTION</Text></View>
-                    </View>
-                    <Text style={styles.caddiePlainEnglishNarration}>
-                      "Calculated target plays like {resolvedPlaysLikeDistance} {units.toLowerCase()}. Given the active {currentBallLie.toLowerCase()} and a {windVelocity}mph {windBearing.toLowerCase()} configuration, pull your {recommendedClubSelection}."
-                    </Text>
-                  </View>
-
-                  <View style={[styles.metallicInnerPanel, { marginTop: 14 }]}>
-                    <Text style={styles.componentHeaderLabel}>⚙️ Manual Calibration Variables</Text>
-                    <View style={styles.formRowGroup}>
-                      <View style={styles.formInputColumn}><Text style={styles.formInputLabel}>Raw Target</Text><TextInput style={styles.formInputField} keyboardType="numeric" value={targetInputDistance} onChangeText={setTargetInputDistance} /></View>
+const styles = StyleSheet.create({
+  appShellViewport:{flex:1,backgroundColor:'#0A1626'},safeLayoutEngine:{flex:1},macroHeaderBrandContainer:{padding:18,alignItems:'center',backgroundColor:'#10243D'},macroHeaderBrandTitle:{fontSize:24,fontWeight:'900',color:'#F4F6F8'},macroHeaderBrandSubtitle:{fontSize:11,fontWeight:'700',color:'#B9C4D2',letterSpacing:2},mainLayoutScrollArea:{padding:14,paddingBottom:90},metallicInnerPanel:{backgroundColor:'#E9EDF2',borderRadius:16,padding:18},componentHeaderLabel:{fontSize:18,fontWeight:'900',color:'#10243D',marginBottom:14},bodyText:{fontSize:16,color:'#17283D',marginVertical:8},caddieMatrixValue:{fontSize:34,fontWeight:'900',color:'#10243D'},formInputField:{backgroundColor:'#FFF',borderWidth:1,borderColor:'#AEB9C6',borderRadius:10,padding:12,fontSize:20,color:'#10243D',marginTop:12},row:{flexDirection:'row',gap:12,marginVertical:12},button:{backgroundColor:'#D5DCE5',padding:18,borderRadius:10,minWidth:64,alignItems:'center'},actionButton:{backgroundColor:'#123B67',padding:16,borderRadius:10,marginTop:12,alignItems:'center'},actionText:{color:'#FFF',fontWeight:'800'},nav:{position:'absolute',bottom:0,left:0,right:0,height:68,flexDirection:'row',backgroundColor:'#0E2037',borderTopWidth:1,borderTopColor:'#64748B'},navButton:{flex:1,alignItems:'center',justifyContent:'center'},navText:{fontSize:10,fontWeight:'800',color:'#9BAABC'},navTextActive:{color:'#FFFFFF'}
+});
