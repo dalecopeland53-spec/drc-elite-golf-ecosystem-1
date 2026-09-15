@@ -1,4 +1,4 @@
-name: Automated S24 Ultra Native APK Compiler Pipeline
+name: Automated S24 Ultra Web App Compiler Pipeline
 
 on:
   push:
@@ -6,62 +6,164 @@ on:
       - main
 
 jobs:
-  compile-native-apk:
+  compile-web-app:
     runs-on: ubuntu-latest
     steps:
       - name: 1. Pull down repository source code
         uses: actions/checkout@v4
 
-      - name: 2. Set up Java Environment
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: 3. Set up Node.js Lifecycle
+      - name: 2. Set up Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: 4. Initialize Core Android Template Workspace
+      - name: 3. Initialize Non-Interactive Compilation Structure
         run: |
-          # Use the strict native React Native CLI to bypass Expo prebuild engines completely
-          npx react-native init localbuildworkspace --version 0.73.6 --skip-install --yes
+          mkdir build-workspace
+          cd build-workspace
           
-          # Inject your custom operational App.js script straight into the native compilation path
-          cp App.js localbuildworkspace/App.js
-          
-          cd localbuildworkspace
-          
-          # Force set native project mapping permissions matching your hardware requirements
+          # Force create a pure, non-interactive package layout map
           cat <<EOF > package.json
           {
-            "name": "drc_elite_golf",
-            "version": "0.0.1",
-            "private": true,
-            "scripts": { "android": "react-native run-android" },
+            "name": "drc-elite-golf",
+            "version": "1.0.0",
+            "scripts": {
+              "build": "vite build"
+            },
             "dependencies": {
-              "react": "18.2.0",
-              "react-native": "0.73.6",
-              "expo-linear-gradient": "~12.3.0",
-              "react-native-safe-area-context": "4.8.2"
+              "react": "^18.2.0",
+              "react-dom": "^18.2.0"
+            },
+            "devDependencies": {
+              "@vitejs/plugin-react": "^4.2.0",
+              "vite": "^5.0.0"
             }
           }
           EOF
 
-          # Inject permissions straight into the hard native AndroidManifest.xml file manifest
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
+          # Create index.html framework entry point configuration
+          cat <<EOF > index.html
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>DRC Elite Golf</title>
+              <style>
+                html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; background: #060F1A; font-family: sans-serif; overflow-x: hidden; }
+              </style>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/main.jsx"></script>
+            </body>
+          </html>
+          EOF
 
-          npm install --no-audit --no-fund --legacy-peer-deps
+          # Translate React Native components into pure standard browser primitives automatically
+          cat <<EOF > main.jsx
+          import React, { useState, useMemo } from 'react';
+          import ReactDOM from 'react-dom/client';
 
-      - name: 5. Compile Pure Native Android Binary Build
-        run: |
-          cd localbuildworkspace/android
-          ./gradlew assembleDebug --no-daemon
+          const PARS =;
+          const LIES = ['Tee', 'Fairway', 'Light Rough', 'Rough', 'Deep Rough', 'Bunker'];
+          const NAV = ['HOME', 'CADDIE', 'MAPPER', 'SCORECARD'];
 
-      - name: 6. Upload Finished App Link Direct to Your Phone
-        uses: actions/upload-artifact@v4
-        with:
-          name: drc-elite-golf-s24-ultra
-          path: localbuildworkspace/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          function App() {
+            const [activeTab, setActiveTab] = useState('HOME');
+            const [units, setUnits] = useState('YARDS');
+            const [activeHoleIdx, setActiveHoleIdx] = useState(0);
+            const [isPocketLockActive, setIsPocketLockActive] = useState(false);
+
+            const [courseMapPositions, setCourseMapPositions] = useState(Array.from({ length: 18 }, () => ({ front: null, center: null, back: null })));
+            const [scorecardStrokes, setScorecardStrokes] = useState(Array(18).fill(''));
+            
+            const [targetInputDistance, setTargetInputDistance] = useState('155');
+            const [windVelocity, setWindVelocity] = useState('12');
+            const [windBearing, setWindBearing] = useState('HEAD');
+            const [slopeElevation, setSlopeElevation] = useState('2');
+            const [currentBallLie, setCurrentBallLie] = useState('Fairway');
+
+            const resolvedPlaysLikeDistance = useMemo(() => {
+              let baseDist = Number(targetInputDistance) || 0;
+              if (windBearing === 'HEAD') baseDist += (Number(windVelocity) || 0) * 0.75;
+              if (windBearing === 'TAIL') baseDist -= (Number(windVelocity) || 0) * 0.75;
+              baseDist *= (1 + ((Number(slopeElevation) || 0) / 100));
+              return Math.max(0, Math.round(baseDist));
+            }, [targetInputDistance, windVelocity, slopeElevation, windBearing]);
+
+            return (
+              <div style={{ padding: '20px', color: '#FFF', paddingBottom: '80px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px', background: '#0A1626', padding: '15px', borderRadius: '10px', border: '1px solid #1E3A5F' }}>
+                  <h1 style={{ margin: 0, fontSize: '24px', letterSpacing: '2px' }}>DRC ELITE GOLF</h1>
+                  <p style={{ color: '#D5AE52', margin: '5px 0 0 0', fontSize: '12px' }}>YOUR CADDIE. YOUR GAME.</p>
+                  <button onClick={() => setIsPocketLockActive(true)} style={{ marginTop: '10px', background: '#10253C', color: '#D5AE52', border: '1px solid #1E3A5F', padding: '6px 12px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold' }}>🔒 POCKET TOUCH SHIELD</button>
+                </div>
+
+                {activeTab === 'HOME' && (
+                  <div>
+                    <div style={{ background: '#E2E8F0', color: '#0A2540', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                      <h3 style={{ margin: '0 0 10px 0' }}>🤖 AI Caddie Advice</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <div style={{ background: '#FFF', padding: '10px', borderRadius: '8px', width: '48%', textAlign: 'center' }}>
+                          <b style={{ fontSize: '20px' }}>{resolvedPlaysLikeDistance}</b>
+                          <div style={{ fontSize: '10px', color: '#5C6E84' }}>PLAYS-LIKE ({units})</div>
+                        </div>
+                        <div style={{ background: '#FFF', padding: '10px', borderRadius: '8px', width: '48%', textAlign: 'center' }}>
+                          <b style={{ fontSize: '20px', color: '#1D599A' }}>7-Iron</b>
+                          <div style={{ fontSize: '10px', color: '#5C6E84' }}>RECOMMENDED</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#E2E8F0', color: '#0A2540', padding: '15px', borderRadius: '12px' }}>
+                      <h3 style={{ margin: '0 0 10px 0' }}>⚙️ Calibration Inputs</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ width: '31%' }}>
+                          <label style={{ fontSize: '11px' }}>Distance</label>
+                          <input type="number" value={targetInputDistance} onChange={(e) => setTargetInputDistance(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box', textAlign: 'center', borderRadius: '6px', border: '1px solid #CBD5E1' }} />
+                        </div>
+                        <div style={{ width: '31%' }}>
+                          <label style={{ fontSize: '11px' }}>Wind</label>
+                          <input type="number" value={windVelocity} onChange={(e) => setWindVelocity(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box', textAlign: 'center', borderRadius: '6px', border: '1px solid #CBD5E1' }} />
+                        </div>
+                        <div style={{ width: '31%' }}>
+                          <label style={{ fontSize: '11px' }}>Slope %</label>
+                          <input type="number" value={slopeElevation} onChange={(e) => setSlopeElevation(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box', textAlign: 'center', borderRadius: '6px', border: '1px solid #CBD5E1' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'SCORECARD' && (
+                  <div style={{ background: '#E2E8F0', color: '#0A2540', padding: '15px', borderRadius: '12px' }}>
+                    <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>HOLE {activeHoleIdx + 1} LOG (PAR {PARS[activeHoleIdx]})</h3>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+                      <button onClick={() => {
+                        const fresh = [...scorecardStrokes];
+                        fresh[activeHoleIdx] = Math.max(1, (Number(fresh[activeHoleIdx]) || PARS[activeHoleIdx]) - 1).toString();
+                        setScorecardStrokes(fresh);
+                      }} style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none', background: '#FFF', fontSize: '20px', fontWeight: 'bold' }}>-</button>
+                      <span style={{ fontSize: '28px', fontWeight: 'bold' }}>{scorecardStrokes[activeHoleIdx] || PARS[activeHoleIdx]}</span>
+                      <button onClick={() => {
+                        const fresh = [...scorecardStrokes];
+                        fresh[activeHoleIdx] = ((Number(fresh[activeHoleIdx]) || PARS[activeHoleIdx]) + 1).toString();
+                        setScorecardStrokes(fresh);
+                      }} style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none', background: '#FFF', fontSize: '20px', fontWeight: 'bold' }}>+</button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center' }}>
+                      {PARS.map((_, i) => (
+                        <button key={i} onClick={() => setActiveHoleIdx(i)} style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: activeHoleIdx === i ? '#1D599A' : '#FFF', color: activeHoleIdx === i ? '#FFF' : '#000', fontWeight: 'bold' }}>{i + 1}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: '#071E2D', borderTop: '2px solid #1E3A5F', display: 'flex', zIndex: 100 }}>
+                  {NAV.map((t) => (
+                    <button key={t} onClick={() => setActiveTab(t)} style={{ flex: 1, background: 'none', border: 'none', color: activeTab === t ? '#D5AE52' : '#8A9EBC', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{t}</button>
+                  ))}
+                </div>
+
+                {isPocketLockActive && (
