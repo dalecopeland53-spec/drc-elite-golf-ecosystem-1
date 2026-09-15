@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,21 +10,15 @@ import {
   Alert,
   Switch,
   Platform,
-  Vibration,
-  useWindowDimensions
+  Vibration
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Voice from '@react-native-voice/voice';
-import Tts from 'react-native-tts';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ==============================================================================
-// 1. DATA DICTIONARIES & HARDWARE REGISTERS (Polished Metallic Theme Colors)
+// 1. DATA DICTIONARIES & MEMORY REGISTERS (Deep Midnight Luxury Theme)
 // ==============================================================================
-const PARS = [4, 5, 4, 3, 4, 4, 4, 5, 4, 4, 3, 4, 5, 4, 5, 3, 3, 4];
+const PARS =;
 const LIES = ['Tee', 'Fairway', 'Light Rough', 'Rough', 'Deep Rough', 'Bunker'];
-const STORAGE_KEY = 'DRC_VIRTUAL_GOLF_ELITE_V3_FINAL';
 
 const CLUB_LIBRARY = [
   { id: 'DR', name: 'Driver', baseCarry: 230 },
@@ -53,9 +47,6 @@ const MENTAL_CHECKPOINTS = [
   { step: 3, name: 'Total Commitment', cue: 'Banish mechanical doubts. Take one deep breath, step in, and release the visualization.' }
 ];
 
-// ==============================================================================
-// 2. MATHEMATICAL VEHICLE MOTORS (Deterministic Haversine Equations)
-// ==============================================================================
 const safeConvertNumeric = (val) => Number(String(val ?? '').replace(/[^0-9.-]/g, '')) || 0;
 
 const executePlaysLikeEngine = (distance, windSpeed, elevationChange, currentLie, windDirection, unitType) => {
@@ -78,27 +69,17 @@ const executeCaddieRecommendation = (calculatedPlaysLikeDistance, unitType) => {
     const currentClubYardage = unitType === 'METRES' ? Math.round(curr.baseCarry * 0.9144) : curr.baseCarry;
     const previousClubYardage = unitType === 'METRES' ? Math.round(prev.baseCarry * 0.9144) : prev.baseCarry;
     return Math.abs(currentClubYardage - calculatedPlaysLikeDistance) < Math.abs(previousClubYardage - calculatedPlaysLikeDistance) ? curr : prev;
-  }, CLUB_LIBRARY[0]).name;
+  }, CLUB_LIBRARY).name;
 };
 
-function MetallicWrapper({ children, customStyle }) {
-  return (
-    <LinearGradient colors={['#E3E8F0', '#B0BCD2', '#E3E8F0']} style={[styles.metallicOuterFrame, customStyle]}>
-      <LinearGradient colors={['#F8FAFC', '#E2E8F0']} style={styles.metallicInnerPanel}>
-        {children}
-      </LinearGradient>
-    </LinearGradient>
-  );
-}
-
 // ==============================================================================
-// 3. CORE FRONTEND LOGIC (Unified Layout Context Routing)
+// 2. CORE APPS LOGIC PANEL (Pure CSS High-Performance Panels)
 // ==============================================================================
 export default function App() {
   const [activeTab, setActiveTab] = useState('HOME');
   const [units, setUnits] = useState('YARDS');
-  const [golferName, setGolferName] = useState('Dale Copeland');
-  const [handicap, setHandicap] = useState('12.4');
+  const [golferName] = useState('Dale Copeland');
+  const [handicap] = useState('12.4');
   const [activeHoleIdx, setActiveHoleIdx] = useState(0);
   const [isPocketLockActive, setIsPocketLockActive] = useState(false);
 
@@ -116,8 +97,6 @@ export default function App() {
 
   const [completedWarmupPhases, setCompletedWarmupPhases] = useState([]);
   const [activeMentalRoutineIdx, setActiveMentalRoutineIdx] = useState(0);
-  const [heard, setHeard] = useState('Caddie interface standby mode.');
-  const [listening, setListening] = useState(false);
 
   const resolvedPlaysLikeDistance = useMemo(() => {
     return executePlaysLikeEngine(targetInputDistance, windVelocity, slopeElevation, currentBallLie, windBearing, units);
@@ -155,31 +134,41 @@ export default function App() {
   };
 
   return (
-    <LinearGradient colors={['#10253C', '#060F1A']} style={styles.appShellViewport}>
-      <SafeAreaView style={styles.safeLayoutEngine}>
-        
-        <View style={styles.macroHeaderBrandContainer}>
-          <Text style={styles.macroHeaderBrandTitle}>DRC ELITE GOLF</Text>
-          <Text style={styles.macroHeaderBrandSubtitle}>YOUR CADDIE. YOUR GAME.</Text>
-          <TouchableOpacity style={styles.headerPocketLockTrigger} onPress={() => setIsPocketLockActive(true)}>
-            <Text style={styles.headerPocketLockTriggerText}>🔒 ENGAGE POCKET TOUCH SHIELD</Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaProvider>
+      <View style={styles.appShellViewport}>
+        <StatusBar barStyle="light-content" />
+        <SafeAreaView style={styles.safeLayoutEngine}>
+          
+          <View style={styles.macroHeaderBrandContainer}>
+            <Text style={styles.macroHeaderBrandTitle}>DRC ELITE GOLF</Text>
+            <Text style={styles.macroHeaderBrandSubtitle}>YOUR CADDIE. YOUR GAME.</Text>
+            <TouchableOpacity style={styles.headerPocketLockTrigger} onPress={() => setIsPocketLockActive(true)}>
+              <Text style={styles.headerPocketLockTriggerText}>🔒 ENGAGE POCKET TOUCH SHIELD</Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={{ flex: 1, marginBottom: 65 }}>
-          <ScrollView contentContainerStyle={styles.mainLayoutScrollArea} showsVerticalScrollIndicator={false}>
-            
-            {activeTab === 'HOME' && (
-              <View>
-                <MetallicWrapper>
-                  <Text style={styles.componentHeaderLabel}>🏌️‍♂️ Profile Telemetry</Text>
-                  <Text style={styles.profileStatText}><Text style={{ fontWeight: '800' }}>Golfer:</Text> {golferName}  |  <Text style={{ fontWeight: '800' }}>Index:</Text> {handicap}  |  <Text style={{ fontWeight: '800' }}>Units:</Text> {units}</Text>
-                </MetallicWrapper>
-
-                <MetallicWrapper customStyle={{ marginTop: 14 }}>
-                  <Text style={styles.componentHeaderLabel}>🤖 AI Caddie Active Advice</Text>
-                  <View style={styles.caddieDataMatrixRow}>
-                    <View style={styles.caddieDataMatrixItem}><Text style={styles.caddieMatrixValue}>{resolvedPlaysLikeDistance}</Text><Text style={styles.caddieMatrixLabel}>PLAYS-LIKE ({units})</Text></View>
-                    <View style={styles.caddieDataMatrixItem}><Text style={[styles.caddieMatrixValue, { color: '#1D599A' }]}>{recommendedClubSelection}</Text><Text style={styles.caddieMatrixLabel}>CLUB SUGGESTION</Text></View>
+          <View style={{ flex: 1, marginBottom: 65 }}>
+            <ScrollView contentContainerStyle={styles.mainLayoutScrollArea} showsVerticalScrollIndicator={false}>
+              
+              {activeTab === 'HOME' && (
+                <View>
+                  <View style={styles.metallicInnerPanel}>
+                    <Text style={styles.componentHeaderLabel}>🏌️‍♂️ Profile Telemetry</Text>
+                    <Text style={styles.profileStatText}><Text style={{ fontWeight: '800' }}>Golfer:</Text> {golferName}  |  <Text style={{ fontWeight: '800' }}>Index:</Text> {handicap}  |  <Text style={{ fontWeight: '800' }}>Units:</Text> {units}</Text>
                   </View>
-                  <Text style={styles.caddiePlainEnglishNarration}>
+
+                  <View style={[styles.metallicInnerPanel, { marginTop: 14 }]}>
+                    <Text style={styles.componentHeaderLabel}>🤖 AI Caddie Active Advice</Text>
+                    <View style={styles.caddieDataMatrixRow}>
+                      <View style={styles.caddieDataMatrixItem}><Text style={styles.caddieMatrixValue}>{resolvedPlaysLikeDistance}</Text><Text style={styles.caddieMatrixLabel}>WAYS-LIKE ({units})</Text></View>
+                      <View style={styles.caddieDataMatrixItem}><Text style={[styles.caddieMatrixValue, { color: '#1D599A' }]}>{recommendedClubSelection}</Text><Text style={styles.caddieMatrixLabel}>CLUB SUGGESTION</Text></View>
+                    </View>
+                    <Text style={styles.caddiePlainEnglishNarration}>
+                      "Calculated target plays like {resolvedPlaysLikeDistance} {units.toLowerCase()}. Given the active {currentBallLie.toLowerCase()} and a {windVelocity}mph {windBearing.toLowerCase()} configuration, pull your {recommendedClubSelection}."
+                    </Text>
+                  </View>
+
+                  <View style={[styles.metallicInnerPanel, { marginTop: 14 }]}>
+                    <Text style={styles.componentHeaderLabel}>⚙️ Manual Calibration Variables</Text>
+                    <View style={styles.formRowGroup}>
+                      <View style={styles.formInputColumn}><Text style={styles.formInputLabel}>Raw Target</Text><TextInput style={styles.formInputField} keyboardType="numeric" value={targetInputDistance} onChangeText={setTargetInputDistance} /></View>
