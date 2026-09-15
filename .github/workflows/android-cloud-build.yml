@@ -21,18 +21,39 @@ jobs:
       - name: 3. Set up Node.js Lifecycle
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: 4. Initialize Core Workspace Directory Structure
         run: |
-          npm install -g yo generator-rn-android
-          npx create-react-native-app local-build-workspace --template default --yes || npx expo init local-build-workspace --template blank --yes
-          cp App.js local-build-workspace/App.js
-          cp app.json local-build-workspace/app.json || true
-          cp package.json local-build-workspace/package.json || true
+          mkdir local-build-workspace
           cd local-build-workspace
+          
+          # Force fabricate the explicit structural manifest mapping for stable SDK 50
+          cat <<EOF > package.json
+          {
+            "name": "drc-elite-golf",
+            "version": "1.0.0",
+            "scripts": { "android": "expo run:android" },
+            "dependencies": {
+              "@react-native-async-storage/async-storage": "1.21.0",
+              "@react-native-voice/voice": "3.2.4",
+              "expo": "~50.0.14",
+              "expo-linear-gradient": "~12.3.0",
+              "expo-location": "~16.5.5",
+              "react": "18.2.0",
+              "react-native": "0.73.6",
+              "react-native-safe-area-context": "4.8.2",
+              "react-native-tts": "4.1.0"
+            },
+            "private": true
+          }
+          EOF
+
+          # Inject our operational core app script directly into the build workspace
+          cp ../App.js ./App.js
+          cp ../app.json ./app.json
+          
           npm install --no-audit --no-fund --legacy-peer-deps
-          npm install expo-location expo-linear-gradient react-native-safe-area-context
 
       - name: 5. Compile Native Android Source Build
         run: |
