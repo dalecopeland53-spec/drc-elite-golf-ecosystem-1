@@ -20,17 +20,25 @@ jobs:
           java-version: '17'
       - name: Install dependencies
         run: npm install
-      - name: Replace legacy TTS source binding
+      - name: Modernize speech bindings
         run: |
           python3 - <<'PY'
           p='App.js'
           s=open(p).read()
+          s=s.replace("import Voice from'@react-native-voice/voice';", "import {ExpoSpeechRecognitionModule,useSpeechRecognitionEvent}from'expo-speech-recognition';")
           s=s.replace("import Tts from'react-native-tts';", "import * as Speech from'expo-speech';")
           s=s.replace("Tts.setDefaultLanguage('en-AU').catch(()=>{});", "")
           s=s.replace("Tts.speak(a)", "Speech.speak(a,{language:'en-AU'})")
+          old="Voice.onSpeechStart=()=>setListening(true);Voice.onSpeechEnd=()=>setListening(false);Voice.onSpeechResults=e=>{let q=e.value?.[0]||'';setHeard(q);if(q){let a=advice(q,bag,units);setHeard(`${q}\\n\\nCaddie: ${a}`);Speech.speak(a,{language:'en-AU'})}};Voice.onSpeechError=()=>setListening(false);return()=>{Voice.destroy().then(Voice.removeAllListeners)}"
+          s=s.replace(old,"return()=>{Speech.stop()}")
+          s=s.replace("const mic=async()=>{try{listening?await Voice.stop():await Voice.start('en-AU')}catch{Alert.alert('Microphone','Voice could not start. Check microphone permission.')}};", "const mic=async()=>{try{if(listening){ExpoSpeechRecognitionModule.stop();setListening(false);return}let p=await ExpoSpeechRecognitionModule.requestPermissionsAsync();if(!p.granted)return Alert.alert('Microphone','Microphone and speech permission are required.');setListening(true);ExpoSpeechRecognitionModule.start({lang:'en-AU',interimResults:false,continuous:false})}catch{setListening(false);Alert.alert('Microphone','Voice could not start. Check microphone permission.')}};")
+          # Insert event hooks inside Shell after state declaration.
+          marker="useEffect(()=>{AsyncStorage.getItem(STORAGE)"
+          hooks="useSpeechRecognitionEvent('result',e=>{let q=e.results?.[0]?.transcript||'';if(q){let a=advice(q,bag,units);setHeard(`${q}\\n\\nCaddie: ${a}`);Speech.speak(a,{language:'en-AU'})}});useSpeechRecognitionEvent('end',()=>setListening(false));useSpeechRecognitionEvent('error',()=>setListening(false));\n"
+          s=s.replace(marker,hooks+marker)
           open(p,'w').write(s)
           PY
-          ! grep -q "react-native-tts" App.js
+          ! grep -q "@react-native-voice/voice\|react-native-tts" App.js
       - name: Validate source
         run: |
           test -f App.js
