@@ -1,29 +1,31 @@
 {
   "expo": {
     "name": "DRC Elite Golf",
-    "slug": "drc-elite-golf",
-    "version": "1.0.1",
+    "slug": "drc-elite-golf-ecosystem-1",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A1626"
+      "backgroundColor": "#060F1A"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.drccaddie.golfelite"
     },
     "android": {
-      "package": "com.dalecopeland.drcelitegolf",
-      "versionCode": 1,
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "RECORD_AUDIO",
-        "INTERNET"
-      ],
+      "package": "com.drccaddie.golfelite",
       "adaptiveIcon": {
-        "backgroundColor": "#0A1626"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#060F1A"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
     }
   }
 }
