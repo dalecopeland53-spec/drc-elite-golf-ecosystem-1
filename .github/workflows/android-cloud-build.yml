@@ -34,7 +34,7 @@ jobs:
       - name: Restore required splash colour resource
         run: |
           mkdir -p android/app/src/main/res/values
-          printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<resources>' '    <color name="splashscreen_background">#ffffff</color>' '</resources>' > android/app/src/main/res/values/colors.xml
+          printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<resources>' '    <color name="splashscreen_background">#ffffff</color>' '    <color name="colorPrimary">#0A2540</color>' '    <color name="colorPrimaryDark">#061522</color>' '    <color name="colorAccent">#D5AE52</color>' '</resources>' > android/app/src/main/res/values/colors.xml
 
       - name: Build release APK
         working-directory: android
