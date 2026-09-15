@@ -1,39 +1,47 @@
-name: DRC Elite Golf Android Build
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-permissions:
-  contents: read
-jobs:
-  android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Install dependencies
-        run: npm install
-      - name: Modernize speech bindings
-        run: |
-          python3 - <<'PY'
-          p='App.js'
-          s=open(p).read()
-          s=s.replace("import Voice from'@react-native-voice/voice';", "import {ExpoSpeechRecognitionModule,useSpeechRecognitionEvent}from'expo-speech-recognition';")
-          s=s.replace("import Tts from'react-native-tts';", "import * as Speech from'expo-speech';")
-          s=s.replace("Tts.setDefaultLanguage('en-AU').catch(()=>{});", "")
-          s=s.replace("Tts.speak(a)", "Speech.speak(a,{language:'en-AU'})")
-          old="Voice.onSpeechStart=()=>setListening(true);Voice.onSpeechEnd=()=>setListening(false);Voice.onSpeechResults=e=>{let q=e.value?.[0]||'';setHeard(q);if(q){let a=advice(q,bag,units);setHeard(`${q}\\n\\nCaddie: ${a}`);Speech.speak(a,{language:'en-AU'})}};Voice.onSpeechError=()=>setListening(false);return()=>{Voice.destroy().then(Voice.removeAllListeners)}"
-          s=s.replace(old,"return()=>{Speech.stop()}")
-          s=s.replace("const mic=async()=>{try{listening?await Voice.stop():await Voice.start('en-AU')}catch{Alert.alert('Microphone','Voice could not start. Check microphone permission.')}};", "const mic=async()=>{try{if(listening){ExpoSpeechRecognitionModule.stop();setListening(false);return}let p=await ExpoSpeechRecognitionModule.requestPermissionsAsync();if(!p.granted)return Alert.alert('Microphone','Microphone and speech permission are required.');setListening(true);ExpoSpeechRecognitionModule.start({lang:'en-AU',interimResults:false,continuous:false})}catch{setListening(false);Alert.alert('Microphone','Voice could not start. Check microphone permission.')}};")
-          # Insert event hooks inside Shell after state declaration.
-          marker="useEffect(()=>{AsyncStorage.getItem(STORAGE)"
+version: '3.8'
+
+services:
+  # Relational Database Node for storing custom pinned course maps, bags, and history logs
+  db:
+    image: postgres:15-alpine
+    container_name: drc_elite_postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: caddieos_db
+      POSTGRES_USER: caddie_admin
+      POSTGRES_PASSWORD: caddie_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_golf_data:/var/lib/postgresql/data
+      - ./services/database/init_caddie_db.sql:/docker-entrypoint-initdb.d/init_caddie_db.sql
+    networks:
+      - drc_golf_network
+
+  # FastAPI Web Server Engine running your asynchronous drc_golf_shot_tracer.py script
+  app:
+    build:
+      context: .
+      dockerfile: ./services/tracer-api/Dockerfile
+    container_name: drc_caddieos_api_server
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://caddie_admin:caddie_secure_password_2026@db:5432/caddieos_db
+      - DRC_SWING_VIDEOS_BUCKET=drc-golf-shot-storage
+    depends_on:
+      - db
+    networks:
+      - drc_golf_network
+
+volumes:
+  postgres_golf_data:
+    driver: local
+
+networks:
+  drc_golf_network:
+    driver: bridge
           hooks="useSpeechRecognitionEvent('result',e=>{let q=e.results?.[0]?.transcript||'';if(q){let a=advice(q,bag,units);setHeard(`${q}\\n\\nCaddie: ${a}`);Speech.speak(a,{language:'en-AU'})}});useSpeechRecognitionEvent('end',()=>setListening(false));useSpeechRecognitionEvent('error',()=>setListening(false));\n"
           s=s.replace(marker,hooks+marker)
           open(p,'w').write(s)
