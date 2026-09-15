@@ -23,13 +23,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: 4. Install production dependencies
+      - name: 4. Initialize Core Workspace Directory Structure
         run: |
+          npm install -g yo generator-rn-android
+          npx create-react-native-app local-build-workspace --template default --yes || npx expo init local-build-workspace --template blank --yes
+          cp App.js local-build-workspace/App.js
+          cp app.json local-build-workspace/app.json || true
+          cp package.json local-build-workspace/package.json || true
+          cd local-build-workspace
           npm install --no-audit --no-fund --legacy-peer-deps
           npm install expo-location expo-linear-gradient react-native-safe-area-context
 
       - name: 5. Compile Native Android Source Build
         run: |
+          cd local-build-workspace
           npx expo prebuild --platform android --clean
           cd android
           ./gradlew assembleDebug --no-daemon
@@ -38,5 +45,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: drc-elite-golf-s24-ultra
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: local-build-workspace/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
